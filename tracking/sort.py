@@ -155,6 +155,9 @@ class Sort(object):
         self.frame_count = 0
 
     def update(self, dets):
+        if not isinstance(dets, np.ndarray):
+            dets = np.array(dets)
+
         self.frame_count += 1
         trks = np.zeros((len(self.trackers), 5))
         to_del = []
@@ -172,9 +175,8 @@ class Sort(object):
         for t, trk in enumerate(self.trackers):
             if t not in unmatched_trks:
                 d = matched[np.where(matched[:, 1] == t)[0], 0]
-                # print(d, dets[d])
-                # if dets[d]:
-                trk.update(dets[d][:][0])
+                if dets[d].any():
+                    trk.update(dets[d][:][0])
         for i in unmatched_dets:
             trk = KalmanBoxTracker(dets[i, :])
             self.trackers.append(trk)

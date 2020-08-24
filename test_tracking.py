@@ -79,8 +79,11 @@ class Detector:
                     confidences.append(float(confidence))
                     classIDs.append(classID)
         idxs = cv2.dnn.NMSBoxes(boxes, confidences, self.conf_threshold, self.nms_threshold)
+
         # return [[*boxes[i], confidences[i], classIDs[i]] for i in idxs.flatten()]
-        return [[*boxes[i], confidences[i], self.classes[classIDs[i]]] for i in idxs.flatten()]
+        if not isinstance(idxs, tuple):
+            return [[*boxes[i], confidences[i], self.classes[classIDs[i]]] for i in idxs.flatten()]
+        return []
 
 
 def xywh_to_xyxy(xywh):
