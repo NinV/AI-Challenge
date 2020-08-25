@@ -1,4 +1,6 @@
 **/.idea/
 **/.vscode/
-**/__pycache__/
+*__pycache__*
 saved_models/
+*.ipynb_checkpoints*
+/detection/yolov3/weights/yolov3-spp.pt
