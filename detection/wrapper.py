@@ -1,21 +1,21 @@
 import sys
 import os
 
-sys.path.insert(0, os.path.join(os.getcwd(), "yolov3"))
+dir_name = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(dir_name, "yolov3"))
 
 import torch
 import numpy as np
 import cv2
 
-from yolov3.models import Darknet, parse_data_cfg
-from yolov3.utils.datasets import letterbox
-from yolov3.utils.utils import scale_coords, load_classes, torch_utils, non_max_suppression
+from .yolov3.models import Darknet, parse_data_cfg
+from .yolov3.utils.datasets import letterbox
+from .yolov3.utils.utils import scale_coords, load_classes, torch_utils, non_max_suppression
 
-
-dir_name = os.path.dirname(__file__)
 model_cfg = os.path.join(dir_name, "yolov3/cfg/yolov3-spp.cfg")
 weights = os.path.join(dir_name, "yolov3/weights/yolov3-spp.pt")
 data_path = os.path.join(dir_name, "yolov3/data/coco.data")
+class_names = os.path.join(dir_name, "yolov3/data/coco.names")
 
 
 class VehicleDetector:
@@ -26,7 +26,7 @@ class VehicleDetector:
         self.device = torch_utils.select_device(device=device)
         self.model.load_state_dict(torch.load(weights, map_location=self.device)['model'])
         self.model.to(self.device).eval()
-        self.classes = load_classes(parse_data_cfg(data_path)['names'])
+        self.classes = load_classes(class_names)
         self.conf_thres = conf_thres
         self.nms_thres = nms_thres
     

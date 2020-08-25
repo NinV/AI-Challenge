@@ -17,7 +17,6 @@ import torch
 import torch.nn as nn
 import torchvision
 from tqdm import tqdm
-from yolov3.module_path import MODULE_PATH
 from . import torch_utils  # , google_utils
 
 # Set printoptions
@@ -55,7 +54,6 @@ def check_file(file):
 
 def load_classes(path):
     # Loads *.names file at 'path'
-    path = "/media/thorpham/PROJECT/AIC_2020_Challenge_Track-1/thor/yolov3_detect_car/yolov3/data/coco.names"
     with open(path, 'r') as f:
         names = f.read().split('\n')
     return list(filter(None, names))  # filter removes empty strings (such as last line)
