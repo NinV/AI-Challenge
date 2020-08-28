@@ -20,6 +20,17 @@ def draw_boxes(img, boxes_xyxy, texts, color, thickness=1):
     return img
 
 
+class_names = ["motorbike", "car", "bus", "truck"]
+
+
+def track_text(trackIds, classIds):
+    texts = []
+    for trkid, clsid in zip(trackIds, classIds):
+        texts.append("{} - {}".format(int(trkid), class_names[int(clsid)]))
+
+    return texts
+
+
 if __name__ == '__main__':
     detector = VehicleDetector(device='0')  # select gpu:0
     tracker = Sort(max_age=5)
@@ -34,19 +45,16 @@ if __name__ == '__main__':
             detections = detector.detect(frame)
             detect_timestamp = time.time()
 
-            detected_boxes = []
-            for det in detections:
-                box_xyxy = det[:4]
-                detected_boxes.append(box_xyxy)
-            detected_boxes = np.array(detected_boxes)
-            tracks = tracker.update(detected_boxes)
+            tracks = tracker.update(detections)
             track_timestamp = time.time()
 
             print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
                                                                               track_timestamp - detect_timestamp))
 
             # frame = draw_boxes(frame, detected_boxes, color=[0, 255, 0])
-            frame = draw_boxes(frame, tracks[:, :4], tracks[:, 4].astype(int), color=[0, 255, 255])
+            if tracks.any():
+                frame = draw_boxes(frame, tracks[:, :4], track_text(tracks[:, 4], tracks[:, 5]), color=[0, 255, 255])
+
             # print(tracks)
             cv2.imshow("track", frame)
 

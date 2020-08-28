@@ -90,6 +90,8 @@ class KalmanBoxTracker(object):
         self.hit_streak = 0
         self.age = 0
 
+        self.classId = bbox[5]
+
     def update(self, bbox):
         self.time_since_update = 0
         self.history = []
@@ -184,7 +186,7 @@ class Sort(object):
         for trk in reversed(self.trackers):
             d = trk.get_state()[0]
             if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate((d, [trk.id + 1])).reshape(1, -1))  # +1 as MOT benchmark requires positive
+                ret.append(np.concatenate((d, [trk.id + 1, trk.classId])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             if trk.time_since_update > self.max_age:
                 self.trackers.pop(i)
