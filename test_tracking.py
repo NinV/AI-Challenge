@@ -32,8 +32,8 @@ def track_text(trackIds, classIds):
 
 
 if __name__ == '__main__':
-    detector = VehicleDetector(device='0')  # select gpu:0
-    tracker = Sort(max_age=5)
+    detector = VehicleDetector(device='0', conf_thres=0.5)  # select gpu:0
+    tracker = Sort(max_age=20, iou_threshold=0.5)
 
     test_video = sys.argv[1]
     vs = cv2.VideoCapture(test_video)
@@ -45,23 +45,31 @@ if __name__ == '__main__':
             detections = detector.detect(frame)
             detect_timestamp = time.time()
 
-            tracks = tracker.update(detections)
+            tracks, matched, unmatched_dets, unmatched_trks = tracker.update(detections)
             track_timestamp = time.time()
 
             print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
                                                                               track_timestamp - detect_timestamp))
-
-            # frame = draw_boxes(frame, detected_boxes, color=[0, 255, 0])
+            detections = np.array(detections)
+            if detections.any():
+                frame = draw_boxes(frame, detections[:, :4], None, color=[0, 255, 0])
             if tracks.any():
                 frame = draw_boxes(frame, tracks[:, :4], track_text(tracks[:, 4], tracks[:, 5]), color=[0, 255, 255])
 
-            # print(tracks)
+            print("detections:\n", detections)
+            print("tracks:\n", tracks)
+
+            print("matched:\n", matched)
+            print("unmatched_dets:\n", unmatched_dets)
+            print("unmatched_trks:\n", unmatched_trks)
+
             cv2.imshow("track", frame)
 
             # fix frame rate at 30 fps
             stop_time = time.time()
             wait_time = int(33.33 - (stop_time - start)*1000)
             cv2.waitKey(max(wait_time, 1))
+            # cv2.waitKey(0)
 
             # cv2.waitKey(1)
         else:
