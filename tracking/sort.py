@@ -90,6 +90,8 @@ class KalmanBoxTracker(object):
         self.hit_streak = 0
         self.age = 0
 
+        self.classId = bbox[5]
+
     def update(self, bbox):
         self.time_since_update = 0
         self.history = []
@@ -147,10 +149,11 @@ def associate_detections_to_trackers(detections, trackers, iou_threshold=0.3):
 
 
 class Sort(object):
-    def __init__(self, max_age=1, min_hits=3):
+    def __init__(self, max_age=1, min_hits=3, iou_threshold=0.3):
 
         self.max_age = max_age
         self.min_hits = min_hits
+        self.iou_threshold = iou_threshold
         self.trackers = []
         self.frame_count = 0
 
@@ -170,7 +173,7 @@ class Sort(object):
         trks = np.ma.compress_rows(np.ma.masked_invalid(trks))
         for t in reversed(to_del):
             self.trackers.pop(t)
-        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(dets, trks)
+        matched, unmatched_dets, unmatched_trks = associate_detections_to_trackers(dets, trks, self.iou_threshold)
 
         for t, trk in enumerate(self.trackers):
             if t not in unmatched_trks:
@@ -184,10 +187,10 @@ class Sort(object):
         for trk in reversed(self.trackers):
             d = trk.get_state()[0]
             if (trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits):
-                ret.append(np.concatenate((d, [trk.id + 1])).reshape(1, -1))  # +1 as MOT benchmark requires positive
+                ret.append(np.concatenate((d, [trk.id + 1, trk.classId])).reshape(1, -1))  # +1 as MOT benchmark requires positive
             i -= 1
             if trk.time_since_update > self.max_age:
                 self.trackers.pop(i)
         if len(ret) > 0:
-            return np.concatenate(ret)
-        return np.empty((0, 5))
+            return np.concatenate(ret), matched, unmatched_dets, unmatched_trks
+        return np.empty((0, 5)), matched, unmatched_dets, unmatched_trks

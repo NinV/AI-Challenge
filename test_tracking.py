@@ -20,9 +20,20 @@ def draw_boxes(img, boxes_xyxy, texts, color, thickness=1):
     return img
 
 
+class_names = ["motorbike", "car", "bus", "truck"]
+
+
+def track_text(trackIds, classIds):
+    texts = []
+    for trkid, clsid in zip(trackIds, classIds):
+        texts.append("{} - {}".format(int(trkid), class_names[int(clsid)]))
+
+    return texts
+
+
 if __name__ == '__main__':
-    detector = VehicleDetector(device='0')  # select gpu:0
-    tracker = Sort(max_age=5)
+    detector = VehicleDetector(device='0', conf_thres=0.5)  # select gpu:0
+    tracker = Sort(max_age=20, iou_threshold=0.5)
 
     test_video = sys.argv[1]
     vs = cv2.VideoCapture(test_video)
@@ -34,26 +45,31 @@ if __name__ == '__main__':
             detections = detector.detect(frame)
             detect_timestamp = time.time()
 
-            detected_boxes = []
-            for det in detections:
-                box_xyxy = det[:4]
-                detected_boxes.append(box_xyxy)
-            detected_boxes = np.array(detected_boxes)
-            tracks = tracker.update(detected_boxes)
+            tracks, matched, unmatched_dets, unmatched_trks = tracker.update(detections)
             track_timestamp = time.time()
 
             print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
                                                                               track_timestamp - detect_timestamp))
+            detections = np.array(detections)
+            if detections.any():
+                frame = draw_boxes(frame, detections[:, :4], None, color=[0, 255, 0])
+            if tracks.any():
+                frame = draw_boxes(frame, tracks[:, :4], track_text(tracks[:, 4], tracks[:, 5]), color=[0, 255, 255])
 
-            # frame = draw_boxes(frame, detected_boxes, color=[0, 255, 0])
-            frame = draw_boxes(frame, tracks[:, :4], tracks[:, 4].astype(int), color=[0, 255, 255])
-            # print(tracks)
+            print("detections:\n", detections)
+            print("tracks:\n", tracks)
+
+            print("matched:\n", matched)
+            print("unmatched_dets:\n", unmatched_dets)
+            print("unmatched_trks:\n", unmatched_trks)
+
             cv2.imshow("track", frame)
 
             # fix frame rate at 30 fps
             stop_time = time.time()
             wait_time = int(33.33 - (stop_time - start)*1000)
             cv2.waitKey(max(wait_time, 1))
+            # cv2.waitKey(0)
 
             # cv2.waitKey(1)
         else:
