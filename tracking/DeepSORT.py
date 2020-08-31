@@ -96,15 +96,14 @@ class Track:
         self.kf.x[:4] = convert_bbox_to_z(detection.box)
         self.time_since_update = 0
 
-    def update(self, bbox, feature=None):
+    def update(self, det: Detection):
         self.time_since_update = 0
         self.hit_streak += 1
-        self.feature = feature
-        self.kf.update(convert_bbox_to_z(bbox))
+        self.feature = det.feature
+        self.kf.update(convert_bbox_to_z(det.box))
+        self.classId = det.classId
 
     def predict(self):
-        # if (self.kf.x[6] + self.kf.x[2]) <= 0:  # surface
-        #     self.kf.x[6] *= 0.0
         self.kf.predict()
         self.age += 1
         if self.time_since_update > 0:
@@ -160,6 +159,9 @@ class Tracker(object):
         trackIds, detectionIds = linear_assignment(distance_matrix)
         # trackIds, detectionIds = linear_assignment(appearance_matrix)
 
+        # custom_matrix = 0.5 * distance_matrix + 0.5 * appearance_matrix
+        # trackIds, detectionIds = linear_assignment(custom_matrix)
+
         for trkId, detId in zip(trackIds, detectionIds):
             if distance_matrix[trkId, detId] < self.max_distance:
                 matched[0].append(active_tracks[trkId])
@@ -183,16 +185,13 @@ class Tracker(object):
         self.frame_count += 1
         print("Processing frame ", self.frame_count)
         print("detections:\n", dets)
-        # print("active track (previous state)\n", self.active_tracks)
         for trk in self.active_tracks:
             trk.predict()
-
-        # print("active track (Predicted)\n", self.active_tracks)
 
         matched, unmatched_dets, unmatched_trks = self.matching(dets)
         if matched:
             for trk, det in zip(matched[0], matched[1]):
-                trk.update(det.box, det.feature)
+                trk.update(det)
                 print("match track {} to {}".format(trk.trackId, det))
 
                 # set track status to "confirmed" if it gets match for "min_hits" consecutive frames
@@ -210,9 +209,6 @@ class Tracker(object):
                 self.active_tracks.remove(trk)
         print("active track (Updated)\n", self.active_tracks)
         print("___________________________________________\n")
-        # if matched:
-        #     return matched[0]
-        # return matched
 
 
 def print_cost_matrix(cost_matrix, tracks: List[Track], detections: List[Detection]):
