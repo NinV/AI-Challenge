@@ -130,7 +130,7 @@ class Tracker(object):
         self.confirmed_tracks = set()
         self.frame_count = 0
 
-    def matching(self, dets: List[Detection]):
+    def matching(self, dets: List[Detection], verbose=False):
         active_tracks = list(self.active_tracks)
         matched = [[], []]
         unmatched_dets = []
@@ -149,12 +149,13 @@ class Tracker(object):
 
         # if distance_matrix.any():
         #     distance_matrix /= np.max(distance_matrix)
-        # print("distance_matrix:\n", distance_matrix)
-        print("Mahalanobis distance")
-        print_cost_matrix(distance_matrix, active_tracks, dets)
-        print("cosine distance (histogram)")
-        print_cost_matrix(appearance_matrix, active_tracks, dets)
-        # print_cost_matrix(np.log(distance_matrix), active_tracks, dets)
+        if verbose:
+            # print("distance_matrix:\n", distance_matrix)
+            print("Mahalanobis distance")
+            print_cost_matrix(distance_matrix, active_tracks, dets)
+            print("cosine distance (histogram)")
+            print_cost_matrix(appearance_matrix, active_tracks, dets)
+            # print_cost_matrix(np.log(distance_matrix), active_tracks, dets)
 
         trackIds, detectionIds = linear_assignment(distance_matrix)
         # trackIds, detectionIds = linear_assignment(appearance_matrix)
@@ -181,18 +182,20 @@ class Tracker(object):
             matched = []
         return matched, unmatched_dets, unmatched_tracks
 
-    def update(self, dets: List[Detection]):
+    def update(self, dets: List[Detection], verbose=False):
         self.frame_count += 1
-        print("Processing frame ", self.frame_count)
-        print("detections:\n", dets)
+        if verbose:
+            print("Processing frame ", self.frame_count)
+            print("detections:\n", dets)
         for trk in self.active_tracks:
             trk.predict()
 
-        matched, unmatched_dets, unmatched_trks = self.matching(dets)
+        matched, unmatched_dets, unmatched_trks = self.matching(dets, verbose=verbose)
         if matched:
             for trk, det in zip(matched[0], matched[1]):
                 trk.update(det)
-                print("match track {} to {}".format(trk.trackId, det))
+                if verbose:
+                    print("match track {} to {}".format(trk.trackId, det))
 
                 # set track status to "confirmed" if it gets match for "min_hits" consecutive frames
                 if trk.hit_streak >= self.min_hits:
@@ -202,13 +205,15 @@ class Tracker(object):
         for det in unmatched_dets:
             new_track = Track(det)
             self.active_tracks.add(new_track)
-            print("create new track:\n", new_track)
+            if verbose:
+                print("create new track:\n", new_track)
 
         for trk in unmatched_trks:
             if trk.time_since_update >= self.max_age:
                 self.active_tracks.remove(trk)
-        print("active track (Updated)\n", self.active_tracks)
-        print("___________________________________________\n")
+        if verbose:
+            print("active track (Updated)\n", self.active_tracks)
+            print("___________________________________________\n")
 
 
 def print_cost_matrix(cost_matrix, tracks: List[Track], detections: List[Detection]):
