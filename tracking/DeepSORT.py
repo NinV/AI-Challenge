@@ -130,18 +130,24 @@ class Tracker(object):
         self.confirmed_tracks = set()
         self.frame_count = 0
 
-    def matching(self, dets: List[Detection], verbose=False):
+    def matching(self, dets: List[Detection], visual_tracking=False, verbose=False):
         active_tracks = list(self.active_tracks)
         matched = [[], []]
         unmatched_dets = []
         unmatched_tracks = []
 
         distance_matrix = np.zeros((len(active_tracks), len(dets)))
-        appearance_matrix = np.zeros((len(active_tracks), len(dets)))
+
         for row, trk in enumerate(active_tracks):
             for col, det in enumerate(dets):
                 distance_matrix[row, col] = mahalanobis(trk.kf.x[:4], det.z, np.linalg.inv(trk.kf.P[:4, :4]))
-                appearance_matrix[row, col] = cosine(trk.feature, det.feature)
+
+        if visual_tracking:
+            appearance_matrix = np.zeros((len(active_tracks), len(dets)))
+            for row, trk in enumerate(active_tracks):
+                for col, det in enumerate(dets):
+                    appearance_matrix[row, col] = cosine(trk.feature, det.feature)
+
 
         # normalize cost matrix
         # distance_matrix /= np.sum(distance_matrix)
@@ -153,8 +159,9 @@ class Tracker(object):
             # print("distance_matrix:\n", distance_matrix)
             print("Mahalanobis distance")
             print_cost_matrix(distance_matrix, active_tracks, dets)
-            print("cosine distance (histogram)")
-            print_cost_matrix(appearance_matrix, active_tracks, dets)
+            if visual_tracking:
+                print("cosine distance (histogram)")
+                print_cost_matrix(appearance_matrix, active_tracks, dets)
             # print_cost_matrix(np.log(distance_matrix), active_tracks, dets)
 
         trackIds, detectionIds = linear_assignment(distance_matrix)
@@ -182,7 +189,7 @@ class Tracker(object):
             matched = []
         return matched, unmatched_dets, unmatched_tracks
 
-    def update(self, dets: List[Detection], verbose=False):
+    def update(self, dets: List[Detection], visual_tracking=False, verbose=False):
         self.frame_count += 1
         if verbose:
             print("Processing frame ", self.frame_count)
@@ -190,7 +197,7 @@ class Tracker(object):
         for trk in self.active_tracks:
             trk.predict()
 
-        matched, unmatched_dets, unmatched_trks = self.matching(dets, verbose=verbose)
+        matched, unmatched_dets, unmatched_trks = self.matching(dets, visual_tracking, verbose)
         if matched:
             for trk, det in zip(matched[0], matched[1]):
                 trk.update(det)
