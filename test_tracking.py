@@ -63,8 +63,8 @@ if __name__ == '__main__':
             # detections = [Detection(det) for det in detections]
             detections = [Detection(det, histogram(frame, det[:4])) for det in detections]
             detect_timestamp = time.time()
-
-            tracker.update(detections)
+            # tracker.update(detections, verbose=True)
+            tracker.update(detections, visual_tracking=True,verbose=True)
             track_timestamp = time.time()
 
             # print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
