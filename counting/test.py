@@ -99,7 +99,7 @@ def calc_angle(vec1, vec2):
     angle = np.arccos(cos) * 360/(2*np.pi)
     return angle
 # load config
-cam_conf = "cam_configs/cam-1.json"
+cam_conf = "cam_configs/cam_01.json"
 tipical_trajs = {}
 with open(cam_conf, 'r') as fc:
     movements = json.load(fc)

@@ -1,6 +1,7 @@
 import numpy as np
 import numba
-from counting import distances
+# from counting import distances
+import distances
 from inspect import getmembers
 
 # def _find_available_functions(module_name):
