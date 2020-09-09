@@ -69,6 +69,9 @@ class Track:
         # measurement vector z: [cx, cy, aspect_ratio, h]
         self.kf = KalmanFilter(dim_x=8, dim_z=4)
 
+        # initialize state
+        self.kf.x[:4] = convert_bbox_to_z(detection.box)
+
         # state transition matrix
         self.kf.F = np.array(
             [[1, 0, 0, 0, 1, 0, 0, 0],      # cx_pred = cx_prev + dcx
@@ -86,14 +89,32 @@ class Track:
              [0, 0, 1, 0, 0, 0, 0, 0],
              [0, 0, 0, 1, 0, 0, 0, 0]])
 
-        self.kf.R[2:, 2:] *= 10.
-        self.kf.P[4:, 4:] *= 1000.  # give high uncertainty to the unobservable initial velocities
-        self.kf.P *= 10.
-        self.kf.Q[-1, -1] *= 0.01
-        self.kf.Q[4:, 4:] *= 0.01
+        # measurement covariance
+        # self.kf.R[2:, 2:] *= 10.
+        self.kf.R[0, 0] = 0.1 #* self.kf.x[3]
+        self.kf.R[1, 1] = 0.1 #* self.kf.x[3]
+        self.kf.R[2, 2] = 0.2 #* self.kf.x[2]
+        self.kf.R[3, 3] = 0.1 #* self.kf.x[3]
 
-        # initialize state
-        self.kf.x[:4] = convert_bbox_to_z(detection.box)
+
+        # state covariance
+        self.kf.P[0, 0] = 0.1 #* self.kf.x[3]
+        self.kf.P[1, 1] = 0.1 #* self.kf.x[3]
+        self.kf.P[2, 2] = 0.2 #* self.kf.x[2]
+        self.kf.P[3, 3] = 0.1 #* self.kf.x[3]
+
+        # give high uncertainty to the unobservable initial velocities
+        self.kf.P[4, 4] = 100 #* self.kf.x[3]
+        self.kf.P[5, 5] = 100 #* self.kf.x[3]
+        self.kf.P[2, 2] = 200 #* self.kf.x[2]
+        self.kf.P[7, 7] = 100 #* self.kf.x[3]
+
+
+        # process covariance
+        # self.kf.Q[-1, -1] = 0.1 * self.kf.x[3]
+        # self.kf.Q[4:, 4:] = 4
+        self.kf.Q[:4, :4] = self.kf.P[:4, :4] * 0.5
+        self.kf.Q[4:, 4:] = self.kf.P[:4, :4] * 2
         self.time_since_update = 0
 
     def update(self, det: Detection):
@@ -115,14 +136,14 @@ class Track:
 
     def __str__(self):
         return "Track {} - x_min = {}, y_min = {}, x_max = {}, y_max ={}".format(self.trackId, *self.get_box()) + \
-               "dx = {}, dy = {}".format(self.kf.x[4], self.kf.x[5])
+               "dx = {}, dy = {}, da = {}, dh = {}".format(*self.kf.x[4: 8])
 
     def __repr__(self):
         return self.__str__() + "\n"
 
 
 class Tracker(object):
-    def __init__(self, max_age=15, min_hits=3, max_distance=50.0):
+    def __init__(self, max_age=15, min_hits=3, max_distance=1.):
         self.max_age = max_age
         self.min_hits = min_hits
         self.max_distance = max_distance
@@ -131,7 +152,7 @@ class Tracker(object):
         self.frame_count = 0
 
     def matching(self, dets: List[Detection], visual_tracking=False, verbose=False):
-        active_tracks = list(self.active_tracks)
+        active_tracks = sorted(list(self.active_tracks), key=lambda i: i.trackId)
         matched = [[], []]
         unmatched_dets = []
         unmatched_tracks = []
@@ -140,7 +161,17 @@ class Tracker(object):
 
         for row, trk in enumerate(active_tracks):
             for col, det in enumerate(dets):
-                distance_matrix[row, col] = mahalanobis(trk.kf.x[:4], det.z, np.linalg.inv(trk.kf.P[:4, :4]))
+                if trk.classId == det.classId:
+                    h = trk.kf.x[3, 0]
+                    norm_factor = np.array([h, h, 1, h])
+                    distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]) / norm_factor,
+                                                            np.squeeze(det.z) / norm_factor,
+                                                            np.linalg.inv(trk.kf.P[:4, :4]))
+                else:
+                    distance_matrix[row, col] = self.max_distance
+
+        distance_matrix[distance_matrix > self.max_distance] = self.max_distance
+
 
         if visual_tracking:
             appearance_matrix = np.zeros((len(active_tracks), len(dets)))
@@ -174,6 +205,11 @@ class Tracker(object):
             if distance_matrix[trkId, detId] < self.max_distance:
                 matched[0].append(active_tracks[trkId])
                 matched[1].append(dets[detId])
+                if verbose:
+                    print("match track {} to {} - distance: {}".format(active_tracks[trkId].trackId,
+                                                                       dets[detId],
+                                                                       distance_matrix[trkId, detId]))
+
             else:
                 unmatched_tracks.append(active_tracks[trkId])
                 unmatched_dets.append(dets[detId])
@@ -201,8 +237,6 @@ class Tracker(object):
         if matched:
             for trk, det in zip(matched[0], matched[1]):
                 trk.update(det)
-                if verbose:
-                    print("match track {} to {}".format(trk.trackId, det))
 
                 # set track status to "confirmed" if it gets match for "min_hits" consecutive frames
                 if trk.hit_streak >= self.min_hits:
@@ -216,7 +250,7 @@ class Tracker(object):
                 print("create new track:\n", new_track)
 
         for trk in unmatched_trks:
-            if trk.time_since_update >= self.max_age:
+            if trk.time_since_update >= self.max_age or trk.status==0:
                 self.active_tracks.remove(trk)
         if verbose:
             print("active track (Updated)\n", self.active_tracks)
