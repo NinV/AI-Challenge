@@ -4,14 +4,13 @@ import os
 import cv2
 from tracking.DeepSORT import Tracker, Detection
 from detection.wrapper import VehicleDetector
-from tracking.appearance import histogram
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", required=True, help="path to videos folder")
     parser.add_argument("-o", "--output", default="tmp", help="output destination")
-    parser.add_argument("--device", default='0', help="device for detector")
+    parser.add_argument("--device", default="cuda:0", help="device for detector")
     parser.add_argument("--conf", default=0.5, help="detector confidence threshold")
     parser.add_argument("--max_age", default=5, help="tracker max age")
     return parser.parse_args()
@@ -33,7 +32,7 @@ if __name__ == '__main__':
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
 
-    detector = VehicleDetector(device=args.device, conf_thres=args.conf, img_size=(608, 608))  # select gpu:0
+    detector = VehicleDetector(weights="detection/yolov5/weights/best_yolov5l.pt", device=args.device)  # select gpu:0
     video_files = sorted(glob(os.path.join(args.input, "*")))
 
     for vf in video_files:

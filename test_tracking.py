@@ -49,8 +49,8 @@ def draw_track(img, tracks: List[Track], thickness=1):
 
 
 if __name__ == '__main__':
-    detector = VehicleDetector(device='0', conf_thres=0.5)  # select gpu:0
-    tracker = Tracker()
+    detector = VehicleDetector(weights="detection/yolov5/weights/best_yolov5l.pt", device="cuda:0")
+    tracker = Tracker(max_age=5)
 
     test_video = sys.argv[1]
     vs = cv2.VideoCapture(test_video)
@@ -60,15 +60,15 @@ if __name__ == '__main__':
         if ret:
             start = time.time()
             detections = detector.detect(frame)
-            # detections = [Detection(det) for det in detections]
-            detections = [Detection(det, histogram(frame, det[:4])) for det in detections]
+            detections = [Detection(det) for det in detections]
+            # detections = [Detection(det, histogram(frame, det[:4])) for det in detections]
             detect_timestamp = time.time()
             # tracker.update(detections, verbose=True)
-            tracker.update(detections, visual_tracking=True,verbose=True)
+            tracker.update(detections, visual_tracking=False, verbose=False)
             track_timestamp = time.time()
 
-            # print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
-            #                                                                   track_timestamp - detect_timestamp))
+            print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,
+                                                                              track_timestamp - detect_timestamp))
 
             # frame = draw_detection(frame, detections, color=[0, 255, 0])
             frame = draw_track(frame, tracker.active_tracks)
