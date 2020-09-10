@@ -35,9 +35,9 @@ def load_tracking(track_file):
     return tracks
 
 
-if __name__ == '__main__':
-    track_file = '/home/thorpham/AI-Challenge/counting/track_results/cam_09.txt'
-    tracks = load_tracking(track_file)
+# if __name__ == '__main__':
+#     track_file = '/home/thorpham/AI-Challenge/counting/track_results/cam_09.txt'
+#     tracks = load_tracking(track_file)
 
 
 def check_center_inside_with_roi(center, mask):

@@ -166,7 +166,7 @@ class Tracker(object):
                     norm_factor = np.array([h, h, 1, h])
                     distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]) / norm_factor,
                                                             np.squeeze(det.z) / norm_factor,
-                                                            np.linalg.inv(trk.kf.P[:4, :4]))
+                                                            np.linalg.inv(trk.kf.P[:4, :4] + 50.))
                 else:
                     distance_matrix[row, col] = self.max_distance
 
