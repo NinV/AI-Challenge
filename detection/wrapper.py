@@ -22,7 +22,7 @@ class VehicleDetector:
     def detect(self, img0):
         img = letterbox(img0, new_shape=640)[0]
         img = img[:, :, ::-1].transpose(2, 0, 1)
-        img = img.astype(np.float32)  # BGR to RGB, to 3x416x416
+        img = img.astype(np.float32)  # BGR to RGB
         img = np.ascontiguousarray(img)
         img /= 255.0
         img = torch.from_numpy(img).to(self.device)
@@ -47,4 +47,39 @@ class VehicleDetector:
                     obj = obj.tolist()
                     x_min, y_min, x_max, y_max, conf, cls = obj
                     result.append((x_min, y_min, x_max, y_max, conf, cls))
+        return result
+
+    def detect_multiple(self, images):
+        """
+        :param images: list of numpy image (n images)
+        :return: [detections_image_1, ...,detections_image_n]
+                detections_per_image = [x_min, y_min, x_max, y_max, conf, cls]
+        """
+        batch = []
+        original_shape = images[0].shape[:2]
+        for img in images:
+            img = letterbox(img, new_shape=640, auto=True)[0]
+            img = img[:, :, ::-1].transpose(2, 0, 1)
+            img = img.astype(np.float32)  # BGR to RGB
+            img = np.ascontiguousarray(img)
+            img /= 255.0
+            batch.append(img)
+        batch = np.array(batch)
+        new_shape = batch.shape[2:]
+
+        batch = torch.from_numpy(batch).to(self.device)
+        predicts = self.model(batch, augment=False)[0]
+
+        # Apply NMS
+        predicts = non_max_suppression(predicts, self.conf_thres, self.iou_thres)
+
+        result = []
+        for dets_per_image in predicts:
+            dets_per_image[:, :4] = scale_coords(new_shape, dets_per_image[:, :4], original_shape).round()
+            dets_per_image_list = []
+            for obj in dets_per_image:
+                obj = obj.tolist()
+                x_min, y_min, x_max, y_max, conf, cls = obj
+                dets_per_image_list.append((x_min, y_min, x_max, y_max, conf, cls))
+            result.append(dets_per_image_list)
         return result
