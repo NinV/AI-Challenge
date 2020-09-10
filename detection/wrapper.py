@@ -75,11 +75,12 @@ class VehicleDetector:
 
         result = []
         for dets_per_image in predicts:
-            dets_per_image[:, :4] = scale_coords(new_shape, dets_per_image[:, :4], original_shape).round()
-            dets_per_image_list = []
-            for obj in dets_per_image:
-                obj = obj.tolist()
-                x_min, y_min, x_max, y_max, conf, cls = obj
-                dets_per_image_list.append((x_min, y_min, x_max, y_max, conf, cls))
-            result.append(dets_per_image_list)
+            if dets_per_image is not None and len(dets_per_image):
+                dets_per_image[:, :4] = scale_coords(new_shape, dets_per_image[:, :4], original_shape).round()
+                dets_per_image_list = []
+                for obj in dets_per_image:
+                    obj = obj.tolist()
+                    x_min, y_min, x_max, y_max, conf, cls = obj
+                    dets_per_image_list.append((x_min, y_min, x_max, y_max, conf, cls))
+                result.append(dets_per_image_list)
         return result
