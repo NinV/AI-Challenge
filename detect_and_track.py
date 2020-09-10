@@ -1,6 +1,7 @@
 import argparse
 from glob import glob
 import os
+from time import time
 import cv2
 from tracking.DeepSORT import Tracker, Detection
 from detection.wrapper import VehicleDetector
@@ -28,6 +29,7 @@ def write_track(fp, camId, frameId, track):
 
 
 if __name__ == '__main__':
+    start = time()
     args = parse_args()
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
@@ -41,9 +43,12 @@ if __name__ == '__main__':
         with open(os.path.join(args.output, "{}.txt".format(camId)), "w") as f:
             vs = cv2.VideoCapture(vf)
             tracker = Tracker(max_age=args.max_age)
-            while True:
+            total_frame = 1000
+            frame_count = 0
+            while frame_count < total_frame:
                 ret, frame = vs.read()
                 if ret:
+                    frame_count += 1
                     detections = detector.detect(frame)
                     detections = [Detection(det) for det in detections]
                     tracker.update(detections, visual_tracking=False)
@@ -55,3 +60,4 @@ if __name__ == '__main__':
                 else:
                     break
             vs.release()
+    print("Total time spent:", time() - start)
