@@ -365,6 +365,8 @@ def count_video(data_root, video_name, save_root):
 
 
 if __name__ == '__main__':
+    if not os.path.isdir("counting_result"):
+        os.makedirs("counting_result")
     import glob
     # data_root = '../'
     data_root = ''
