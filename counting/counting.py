@@ -27,8 +27,8 @@ def count_video(data_root, video_name, save_root):
     h, w, c = mask.shape
 
     # start counting
-    dist_thr = 1000
-    angle_thr = 70
+    dist_thr = 800
+    angle_thr = 60
     # print("Old tracks ",len(tracks))
     # tracks = filter_tracks(tracks,mask)
     if video_name in ["cam_01","cam_02","cam_03"]:
@@ -373,7 +373,7 @@ if __name__ == '__main__':
     # video_list = os.listdir(os.path.join(data_root, 'imageset'))
     # cam01, cam02, ...
     # video_list = [sys.argv[1]]
-    video_list = sorted(glob.glob('/home/thorpham/AI-Challenge/counting/track_results/*'))
+    video_list = sorted(glob.glob('track_results/*'))
     print(len(video_list))
     for video_path in video_list:
 
