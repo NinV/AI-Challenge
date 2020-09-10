@@ -11,6 +11,7 @@ from detection.wrapper import VehicleDetector
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", required=True, help="path to videos folder")
+    parser.add_argument("-w", "--weights", default="detection/yolov5/weights/best_yolov5l.pt")
     parser.add_argument("-o", "--output", default="tmp", help="output destination")
     parser.add_argument("--device", default="cuda:0", help="device for detector")
     parser.add_argument("--conf", default=0.5, help="detector confidence threshold", type=float)
@@ -62,7 +63,7 @@ if __name__ == '__main__':
     if not os.path.isdir(args.output):
         os.makedirs(args.output)
 
-    detector = VehicleDetector(weights="detection/yolov5/weights/best_yolov5l.pt", device=args.device)  # select gpu:0
+    detector = VehicleDetector(weights=args.weights, device=args.device)  # select gpu:0
     video_files = sorted(glob(os.path.join(args.input, "*")))
 
     for vf in video_files:
@@ -78,8 +79,7 @@ if __name__ == '__main__':
             frame_count = 0
             frame_batch = []
 
-            total_frame = 1000
-            while frame_count < total_frame:
+            while True:
                 ret, frame = vs.read()
                 if ret:
                     frame_count += 1
