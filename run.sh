@@ -4,9 +4,8 @@ starttime=`date +%s`
 echo "---------------------------------------------------"
 #get all videos names
 ROOT_PATH=$(pwd)
-source ~/anaconda3/bin/activate
-conda activate yolo
-python detect_and_track_final_submission.py --input /home/dungpv/Documents/videos/ --output counting/track_results
+python detect_and_track_final_submission.py --input /data/test_data
 cd counting
 python counting.py
 python submit.py
+mv submit.txt /data/submission_output

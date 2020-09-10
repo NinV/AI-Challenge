@@ -348,14 +348,14 @@ def count_video(data_root, video_name, save_root):
         # bb = list(map(str, [last_bbox[1], last_bbox[2], last_bbox[3], last_bbox[4]]))
         # results.append([video_idx, str(dst_frame), direction_idx, str(track_class_id), *bb])
         # for test
-        center = []
-        _ = [center.extend(x) for x in track_center[1:]]
-        center = list(map(str, center))
-
-        bb = list(map(str, [last_bbox[1], last_bbox[2], last_bbox[3], last_bbox[4]]))
-        results.append([video_idx, str(dst_frame), direction_idx, str(track_class_id), *bb, *center, str(trackid)])
+        # center = []
+        # _ = [center.extend(x) for x in track_center[1:]]
+        # center = list(map(str, center))
+        #
+        # bb = list(map(str, [last_bbox[1], last_bbox[2], last_bbox[3], last_bbox[4]]))
+        # results.append([video_idx, str(dst_frame), direction_idx, str(track_class_id), *bb, *center, str(trackid)])
         # # for submit
-        # results.append([video_idx, str(dst_frame), direction_idx, str(int(track_class_id) + 1)])
+        results.append([video_idx, str(dst_frame), direction_idx, str(int(track_class_id) + 1)])
 
     # save
     results.sort(key=lambda x: (int(x[1]), int(x[2])))
