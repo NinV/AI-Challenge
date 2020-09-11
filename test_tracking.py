@@ -49,8 +49,8 @@ def draw_track(img, tracks: List[Track], thickness=1):
 
 
 if __name__ == '__main__':
-    detector = VehicleDetector(weights="detection/yolov5/weights/best_yolov5l.pt", device="cuda:0")
-    tracker = Tracker(max_age=5)
+    detector = VehicleDetector(weights="detection/yolov5/weights/yolov5x.pt", device="cuda:0")
+    tracker = Tracker(max_age=3)
 
     test_video = sys.argv[1]
     vs = cv2.VideoCapture(test_video)
@@ -64,7 +64,7 @@ if __name__ == '__main__':
             # detections = [Detection(det, histogram(frame, det[:4])) for det in detections]
             detect_timestamp = time.time()
             # tracker.update(detections, verbose=True)
-            tracker.update(detections, visual_tracking=False, verbose=False)
+            tracker.update(detections, visual_tracking=False, verbose=True)
             track_timestamp = time.time()
 
             print("frame {}: detection time: {} s, trackin time: {} s".format(tracker.frame_count, detect_timestamp - start,

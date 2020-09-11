@@ -69,6 +69,9 @@ class Track:
         # measurement vector z: [cx, cy, aspect_ratio, h]
         self.kf = KalmanFilter(dim_x=8, dim_z=4)
 
+        self._std_weight_position = 1. / 20
+        self._std_weight_velocity = 1. / 160
+
         # initialize state
         self.kf.x[:4] = convert_bbox_to_z(detection.box)
 
@@ -90,31 +93,35 @@ class Track:
              [0, 0, 0, 1, 0, 0, 0, 0]])
 
         # measurement covariance
-        # self.kf.R[2:, 2:] *= 10.
-        self.kf.R[0, 0] = 0.1 #* self.kf.x[3]
-        self.kf.R[1, 1] = 0.1 #* self.kf.x[3]
-        self.kf.R[2, 2] = 0.2 #* self.kf.x[2]
-        self.kf.R[3, 3] = 0.1 #* self.kf.x[3]
+        self.kf.R[0, 0] = self._std_weight_position * self.kf.x[3]
+        self.kf.R[1, 1] = self._std_weight_position * self.kf.x[3]
+        self.kf.R[2, 2] = 1e-1
+        self.kf.R[3, 3] = self._std_weight_position * self.kf.x[3]
 
 
         # state covariance
-        self.kf.P[0, 0] = 0.1 #* self.kf.x[3]
-        self.kf.P[1, 1] = 0.1 #* self.kf.x[3]
-        self.kf.P[2, 2] = 0.2 #* self.kf.x[2]
-        self.kf.P[3, 3] = 0.1 #* self.kf.x[3]
+        self.kf.P[0, 0] = 2 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[1, 1] = 2 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[2, 2] = 1e-2
+        self.kf.P[3, 3] = 2 * self._std_weight_position * self.kf.x[3]
 
         # give high uncertainty to the unobservable initial velocities
-        self.kf.P[4, 4] = 100 #* self.kf.x[3]
-        self.kf.P[5, 5] = 100 #* self.kf.x[3]
-        self.kf.P[2, 2] = 200 #* self.kf.x[2]
-        self.kf.P[7, 7] = 100 #* self.kf.x[3]
+        self.kf.P[4, 4] = 10 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[5, 5] = 10 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[6, 6] = 1e-5
+        self.kf.P[7, 7] = 10 * self._std_weight_position * self.kf.x[3]
 
 
         # process covariance
-        # self.kf.Q[-1, -1] = 0.1 * self.kf.x[3]
-        # self.kf.Q[4:, 4:] = 4
-        self.kf.Q[:4, :4] = self.kf.P[:4, :4] * 0.5
-        self.kf.Q[4:, 4:] = self.kf.P[:4, :4] * 2
+        self.kf.Q[0, 0] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[1, 1] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[2, 2] = 1e-2
+        self.kf.Q[3, 3] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[4, 4] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[5, 5] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[6, 6] = 1e-5
+        self.kf.Q[7, 7] = self._std_weight_position * self.kf.x[3]
+
         self.time_since_update = 0
 
     def update(self, det: Detection):
@@ -143,7 +150,7 @@ class Track:
 
 
 class Tracker(object):
-    def __init__(self, max_age=15, min_hits=3, max_distance=1.):
+    def __init__(self, max_age=3, min_hits=3, max_distance=9.4877):
         self.max_age = max_age
         self.min_hits = min_hits
         self.max_distance = max_distance
@@ -162,10 +169,13 @@ class Tracker(object):
         for row, trk in enumerate(active_tracks):
             for col, det in enumerate(dets):
                 if trk.classId == det.classId:
-                    h = trk.kf.x[3, 0]
-                    norm_factor = np.array([h, h, 1, h])
-                    distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]) / norm_factor,
-                                                            np.squeeze(det.z) / norm_factor,
+                    # h = trk.kf.x[3, 0]
+                    # norm_factor = np.array([h, h, 1, h])
+                    # distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]) / norm_factor,
+                    #                                         np.squeeze(det.z) / norm_factor,
+                    #                                         np.linalg.inv(trk.kf.P[:4, :4] + 50.))
+                    distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]),
+                                                            np.squeeze(det.z),
                                                             np.linalg.inv(trk.kf.P[:4, :4] + 50.))
                 else:
                     distance_matrix[row, col] = self.max_distance
@@ -179,27 +189,14 @@ class Tracker(object):
                 for col, det in enumerate(dets):
                     appearance_matrix[row, col] = cosine(trk.feature, det.feature)
 
-
-        # normalize cost matrix
-        # distance_matrix /= np.sum(distance_matrix)
-        # appearance_matrix /= np.sum(appearance_matrix)
-
-        # if distance_matrix.any():
-        #     distance_matrix /= np.max(distance_matrix)
         if verbose:
-            # print("distance_matrix:\n", distance_matrix)
             print("Mahalanobis distance")
             print_cost_matrix(distance_matrix, active_tracks, dets)
             if visual_tracking:
                 print("cosine distance (histogram)")
                 print_cost_matrix(appearance_matrix, active_tracks, dets)
-            # print_cost_matrix(np.log(distance_matrix), active_tracks, dets)
 
         trackIds, detectionIds = linear_assignment(distance_matrix)
-        # trackIds, detectionIds = linear_assignment(appearance_matrix)
-
-        # custom_matrix = 0.5 * distance_matrix + 0.5 * appearance_matrix
-        # trackIds, detectionIds = linear_assignment(custom_matrix)
 
         for trkId, detId in zip(trackIds, detectionIds):
             if distance_matrix[trkId, detId] < self.max_distance:
