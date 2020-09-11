@@ -21,12 +21,12 @@ def load_tracking(track_file):
         dist_checker = 0  # pre-create
         ratio_dist_thr = 6  # ratio to create new fake id
 
-        dist_pixel_thr = 150
+        dist_pixel_thr = 200
         replace_id = {}
         id_fake = -1
         # TODO: chinh cho tung cam
-        if name_cam in ["cam_05"]:
-            dist_pixel_thr = 200
+        # if name_cam in ["cam_04", "cam_05", "cam_06"]:
+        #     dist_pixel_thr = 200
 
         for line in lines:
             frameid = int(line[1])
