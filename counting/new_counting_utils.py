@@ -1,14 +1,33 @@
 import json
 import os
 
+import math
 import cv2
 import numpy as np
 
 
+def getAngle(a, b, c):
+    ang = math.degrees(math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(a[1] - b[1], a[0] - b[0]))
+    return ang + 360 if ang < 0 else ang
+
+
 def load_tracking(track_file):
     tracks = {}
+    name_cam = os.path.basename(track_file).split('.txt')[0]
     with open(track_file, 'r') as ft:
         lines = [line.strip('\n').split(' ') for line in ft]
+
+        dist_pre_check = {}
+        dist_checker = 0  # pre-create
+        ratio_dist_thr = 6  # ratio to create new fake id
+
+        dist_pixel_thr = 150
+        replace_id = {}
+        id_fake = -1
+        # TODO: chinh cho tung cam
+        if name_cam in ["cam_05"]:
+            dist_pixel_thr = 200
+
         for line in lines:
             frameid = int(line[1])
             trackid = int(line[2])
@@ -20,9 +39,40 @@ def load_tracking(track_file):
             cx = int((x1 + x2) / 2)
             cy = int((y1 + y2) / 2)
 
-
             label = line[7]
             if trackid in tracks:
+                while trackid in replace_id:
+                # if trackid in replace_id:
+                    trackid = replace_id[trackid]
+
+                dist_pre_check[trackid].append(distance_of_2_points(tracks[trackid]['tracklet'][-1], (cx, cy)))
+                if len(dist_pre_check[trackid]) > 4:
+                    if dist_pre_check[trackid][-2] != 0:
+                        dist_checker = dist_pre_check[trackid][-1] / np.mean(dist_pre_check[trackid][:-1])
+
+                    else:
+                        dist_checker = 0
+                if dist_pre_check[trackid][-1] > dist_pixel_thr:
+                    dist_checker = ratio_dist_thr + 1
+
+                if len(tracks[trackid]['tracklet']) > 17:
+                    if not (90 < getAngle(*tracks[trackid]['tracklet'][-15:][::5]) < 270):
+                        dist_checker = ratio_dist_thr + 1
+
+                if dist_checker > ratio_dist_thr:
+                    replace_id[trackid] = id_fake
+                    trackid = id_fake
+                    id_fake -= 1
+
+                    tracks[trackid] = {'startframe': frameid,
+                                       'endframe': frameid,
+                                       'bbox': [[frameid, x1, y1, x2, y2, label]],
+                                       'tracklet': [[cx, cy]],
+                                       'video_idx': line[0]}
+                    dist_pre_check[trackid] = []
+                    dist_checker = 0
+                    continue
+
                 tracks[trackid]['endframe'] = frameid
                 tracks[trackid]['bbox'].append([frameid, x1, y1, x2, y2, label])
                 tracks[trackid]['tracklet'].append([cx, cy])
@@ -32,6 +82,7 @@ def load_tracking(track_file):
                                    'bbox': [[frameid, x1, y1, x2, y2, label]],
                                    'tracklet': [[cx, cy]],
                                    'video_idx': line[0]}
+                dist_pre_check[trackid] = []
     return tracks
 
 
