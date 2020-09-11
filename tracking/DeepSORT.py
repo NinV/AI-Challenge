@@ -168,20 +168,11 @@ class Tracker(object):
 
         for row, trk in enumerate(active_tracks):
             for col, det in enumerate(dets):
-                if trk.classId == det.classId:
-                    # h = trk.kf.x[3, 0]
-                    # norm_factor = np.array([h, h, 1, h])
-                    # distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]) / norm_factor,
-                    #                                         np.squeeze(det.z) / norm_factor,
-                    #                                         np.linalg.inv(trk.kf.P[:4, :4] + 50.))
-                    distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]),
-                                                            np.squeeze(det.z),
-                                                            np.linalg.inv(trk.kf.P[:4, :4] + 50.))
-                else:
-                    distance_matrix[row, col] = self.max_distance
+                distance_matrix[row, col] = mahalanobis(np.squeeze(trk.kf.x[:4]),
+                                                        np.squeeze(det.z),
+                                                        np.linalg.inv(trk.kf.P[:4, :4] + 50. * np.identity(4)))
 
         distance_matrix[distance_matrix > self.max_distance] = self.max_distance
-
 
         if visual_tracking:
             appearance_matrix = np.zeros((len(active_tracks), len(dets)))
