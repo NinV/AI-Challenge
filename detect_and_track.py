@@ -11,6 +11,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("-i", "--input", required=True, help="path to videos folder")
     parser.add_argument("-o", "--output", default="tmp", help="output destination")
+    parser.add_argument("-w", "--weights", default="detection/yolov5/weights/best_yolov5l.pt")
     parser.add_argument("--device", default="cuda:0", help="device for detector")
     parser.add_argument("--conf", default=0.5, help="detector confidence threshold")
     parser.add_argument("--max_age", default=5, help="tracker max age")
@@ -43,15 +44,17 @@ if __name__ == '__main__':
         with open(os.path.join(args.output, "{}.txt".format(camId)), "w") as f:
             vs = cv2.VideoCapture(vf)
             tracker = Tracker(max_age=args.max_age)
-            total_frame = 1000
-            frame_count = 0
-            while frame_count < total_frame:
+
+            # frame_count = 0
+            # total_frame = 100
+            # while frame_count < total_frame:
+            while True:
                 ret, frame = vs.read()
                 if ret:
-                    frame_count += 1
+                    # frame_count += 1
                     detections = detector.detect(frame)
                     detections = [Detection(det) for det in detections]
-                    tracker.update(detections, visual_tracking=False)
+                    tracker.update(detections, visual_tracking=False, verbose=False)
                     for trk in tracker.active_tracks:
                         if trk.time_since_update == 0 and trk.status == 1:
                             x_min, y_min, x_max, y_max = trk.get_box()

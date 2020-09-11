@@ -83,4 +83,6 @@ class VehicleDetector:
                     x_min, y_min, x_max, y_max, conf, cls = obj
                     dets_per_image_list.append((x_min, y_min, x_max, y_max, conf, cls))
                 result.append(dets_per_image_list)
+            else:
+                result.append([])    # ensure the number of elements in input batch and output batch are the same
         return result
