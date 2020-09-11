@@ -46,14 +46,16 @@ def track():
     while True:
         if not detections_queue.empty():
             detection_per_frame = detections_queue.get()
-            if detection_per_frame:
+
+            # detection_per_frame can be a list or False
+            if isinstance(detection_per_frame, list):
                 tracker.update(detection_per_frame, visual_tracking=False, verbose=False)
                 for trk in tracker.active_tracks:
                     if trk.time_since_update == 0 and trk.status == 1:
                         x_min, y_min, x_max, y_max = trk.get_box()
                         track = x_min[0], y_min[0], x_max[0], y_max[0], trk.trackId, trk.classId,
                         write_track(f, camId, tracker.frame_count, track)
-            else:
+            else:   # end of video
                 break
 
 
@@ -89,7 +91,7 @@ if __name__ == '__main__':
                         frame_batch = []
                 else:
                     break
-            detections_queue.put(False)
+            detections_queue.put(False)     # send signal to tracker at the end of video
             vs.release()
             track_p.join()
     print("Total time spent:", time() - start)
