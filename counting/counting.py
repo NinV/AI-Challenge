@@ -40,7 +40,7 @@ def count_video(data_root, video_name, save_root):
 
 
     count += len(tracks)
-    print(count)
+    # print(count)
     trackids = sorted([k for k in tracks.keys()])
     # print("New track ",len(tracks))
     # min_length = 10
