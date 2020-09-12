@@ -45,11 +45,16 @@ def count_video(data_root, video_name, save_root):
     # print("New track ",len(tracks))
     # min_length = 10
     min_length = 6
+    dist_start_end_thr = 50
     results = []
     for trackid in trackids:
 
         # check length of tracking id
         track_center = tracks[trackid]['tracklet']
+               
+        if distance_of_2_points(track_center[-1], track_center[0]) < dist_start_end_thr:
+            continue
+            
         if len(track_center) < min_length:
             continue
         # calc hausdorff dist with tipical trajs, assign the movement with the min dist
