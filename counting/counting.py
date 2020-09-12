@@ -2,7 +2,7 @@ import os
 import numpy as np
 from hausdorff_dist import hausdorff_distance
 from new_counting_utils import check_center_inside_with_roi, check_tracks_with_roi, is_same_direction, \
-    get_nearest_movement, get_config_mask, get_config_cam_load_tracking, check_bbox_overlap_with_roi
+    get_nearest_movement, get_config_mask, get_config_cam_load_tracking, check_bbox_overlap_with_roi,distance_of_2_points
 
 
 def write_result(path, data):
