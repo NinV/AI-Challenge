@@ -150,13 +150,14 @@ class Track:
 
 
 class Tracker(object):
-    def __init__(self, max_age=3, min_hits=3, max_distance=9.4877):
+    def __init__(self, max_age=3, min_hits=3, max_distance=9.4877, min_iou=0.5):
         self.max_age = max_age
         self.min_hits = min_hits
         self.max_distance = max_distance
         self.active_tracks = set()
         self.confirmed_tracks = set()
         self.frame_count = 0
+        self.min_iou = min_iou
 
     def matching(self, dets: List[Detection], visual_tracking=False, verbose=False):
         active_tracks = sorted(list(self.active_tracks), key=lambda i: i.trackId)
@@ -190,14 +191,13 @@ class Tracker(object):
         trackIds, detectionIds = linear_assignment(distance_matrix)
 
         for trkId, detId in zip(trackIds, detectionIds):
-            if distance_matrix[trkId, detId] < self.max_distance:
+            if distance_matrix[trkId, detId] < self.max_distance and calc_iou(active_tracks[trkId].get_box(), dets[detId].box) > self.min_iou:
                 matched[0].append(active_tracks[trkId])
                 matched[1].append(dets[detId])
                 if verbose:
                     print("match track {} to {} - distance: {}".format(active_tracks[trkId].trackId,
-                                                                       dets[detId],
-                                                                       distance_matrix[trkId, detId]))
-
+                                                                   dets[detId],
+                                                                   distance_matrix[trkId, detId]))
             else:
                 unmatched_tracks.append(active_tracks[trkId])
                 unmatched_dets.append(dets[detId])
@@ -249,3 +249,23 @@ def print_cost_matrix(cost_matrix, tracks: List[Track], detections: List[Detecti
     headers = [""] + [str(det.detID) for det in detections]
     table = [[trk.trackId, *values] for trk, values in zip(tracks, cost_matrix)]
     print(tabulate(table, headers=headers))
+
+
+def calc_iou(box1, box2):
+    # determine the (x, y)-coordinates of the intersection rectangle
+    xA = max(box1[0], box2[0])
+    yA = max(box1[1], box2[1])
+    xB = min(box1[2], box2[2])
+    yB = min(box1[3], box2[3])
+    # compute the area of intersection rectangle
+    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
+    # compute the area of both the prediction and ground-truth
+    # rectangles
+    box1Area = (box1[2] - box1[0] + 1) * (box1[3] - box1[1] + 1)
+    box2Area = (box2[2] - box2[0] + 1) * (box2[3] - box2[1] + 1)
+    # compute the intersection over union by taking the intersection
+    # area and dividing it by the sum of prediction + ground-truth
+    # areas - the interesection area
+    iou = interArea / float(box1Area + box2Area - interArea)
+    # return the intersection over union value
+    return iou

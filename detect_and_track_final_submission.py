@@ -16,6 +16,7 @@ def parse_args():
     parser.add_argument("--device", default="cuda:0", help="device for detector")
     parser.add_argument("--conf", default=0.5, help="detector confidence threshold", type=float)
     parser.add_argument("--max_age", default=5, help="tracker max age", type=int)
+    parser.add_argument("--min_iou", default=0.5, type=float)
     parser.add_argument("--batch_size", default=14, type=int)
     return parser.parse_args()
 
@@ -73,14 +74,13 @@ if __name__ == '__main__':
         print("[INFO] processing", camId)
         with open(os.path.join(args.output, "{}.txt".format(camId)), "w") as f:
             vs = cv2.VideoCapture(vf)
-            tracker = Tracker(max_age=args.max_age)
+            tracker = Tracker(max_age=args.max_age, min_iou=args.min_iou)
             detections_queue = Queue()
             track_p = Process(target=track)
             track_p.start()
 
             frame_count = 0
             frame_batch = []
-
             while True:
                 ret, frame = vs.read()
                 if ret:
