@@ -67,7 +67,7 @@ if __name__ == '__main__':
         os.makedirs(args.output)
 
     detector = VehicleDetector(weights=args.weights, device=args.device)  # select gpu:0
-    video_files = sorted(glob(os.path.join(args.input, "*")))
+    video_files = sorted(glob(os.path.join(args.input, "*.mp4")))
 
     for vf in video_files:
         camId = get_camId(vf)
