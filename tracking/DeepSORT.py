@@ -106,10 +106,10 @@ class Track:
         self.kf.P[3, 3] = 2 * self._std_weight_position * self.kf.x[3]
 
         # give high uncertainty to the unobservable initial velocities
-        self.kf.P[4, 4] = 10 * self._std_weight_position * self.kf.x[3]
-        self.kf.P[5, 5] = 10 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[4, 4] = 10 * self._std_weight_velocity * self.kf.x[3]
+        self.kf.P[5, 5] = 10 * self._std_weight_velocity * self.kf.x[3]
         self.kf.P[6, 6] = 1e-5
-        self.kf.P[7, 7] = 10 * self._std_weight_position * self.kf.x[3]
+        self.kf.P[7, 7] = 10 * self._std_weight_velocity * self.kf.x[3]
 
 
         # process covariance
@@ -117,10 +117,10 @@ class Track:
         self.kf.Q[1, 1] = self._std_weight_position * self.kf.x[3]
         self.kf.Q[2, 2] = 1e-2
         self.kf.Q[3, 3] = self._std_weight_position * self.kf.x[3]
-        self.kf.Q[4, 4] = self._std_weight_position * self.kf.x[3]
-        self.kf.Q[5, 5] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[4, 4] = self._std_weight_velocity * self.kf.x[3]
+        self.kf.Q[5, 5] = self._std_weight_velocity * self.kf.x[3]
         self.kf.Q[6, 6] = 1e-5
-        self.kf.Q[7, 7] = self._std_weight_position * self.kf.x[3]
+        self.kf.Q[7, 7] = self._std_weight_velocity * self.kf.x[3]
 
         self.time_since_update = 0
 
